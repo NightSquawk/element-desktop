@@ -1,0 +1,26 @@
+---
+description: "Core behavior instructions for Element Desktop development"
+alwaysApply: true
+---
+
+# Core Instructions
+
+- Don't be a "yes man" — if a request is flawed, say so with a better alternative
+- Be surgical with changes — modify only what's needed, avoid breaking working functionality
+- Apply code changes directly rather than describing them and asking permission
+- When in doubt, read existing code before writing new code — reuse existing patterns
+- This repo is the **Electron main-process wrapper only**. The web client (React) lives in element-web and is fetched as a prebuilt `webapp` bundle — do not add UI/React code here
+- Internal ESM imports use `.js` extensions on `.ts` source (e.g. `import "./ipc.js"`). eslint enforces this (`n/file-extension-in-import`) — never drop the extension
+- Side-effect imports at the top of `electron-main.ts` (`./ipc.js`, `./seshat.js`, `./settings.js`, `./badge.js`) register `ipcMain` handlers by being imported. Preserve that pattern when adding main-process modules
+- This is a **fork that tracks upstream `element-hq/element-desktop`**. Prefer minimal, rebase-friendly diffs; keep fork-specific changes isolated and clearly marked so upstream merges stay clean
+- Before finishing, run `pnpm run lint` (lint runs with `--max-warnings 0` and prettier is enforced). Use `pnpm run lint:js-fix` to auto-fix
+
+## Subagent Rule Briefing
+
+Subagents (Explore, Plan, general-purpose) spawned via the Agent tool **do not** receive CLAUDE.md or `.claude/rules/*.mdc` — they start with a blank context. When spawning a subagent that will produce code, implementation plans, or architectural recommendations, **you must include the relevant rules directly in the agent prompt**. At minimum:
+
+1. **Code-writing agents**: Include the constraints that govern the code being written (the `.js`-import-extension rule, the "main-process-only / no React here" boundary, and the relevant tsconfig the file belongs to — `src`, `playwright`, `scripts`, or `hak`).
+2. **Plan/architecture agents**: Include the key boundaries from this file — Electron-wrapper-only scope, the fetched `webapp` model, the IPC bridge as the main↔renderer surface, and the fork-vs-upstream constraint.
+3. **Explore/research agents**: No rules needed — they only read, and the main agent applies rules when acting on their findings.
+
+If in doubt, include the rule. The cost of extra tokens is far less than the cost of a subagent producing non-compliant code that has to be rewritten.

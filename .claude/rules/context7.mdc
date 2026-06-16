@@ -1,0 +1,10 @@
+---
+description: "Automatically use Context7 MCP for library documentation"
+alwaysApply: true
+---
+
+# Context7 Auto-Use
+
+When generating code, setting up configurations, or working with any library — automatically use the Context7 MCP tools (`resolve-library-id` then `query-docs`) to get current documentation. Do not rely solely on training data for library APIs. This applies to the libraries in this project: Electron, electron-builder / app-builder-lib, electron-store, electron-window-state, Playwright (`@playwright/test`), `@sentry/electron`, `auto-launch`, and the build tooling (tsx, esbuild, eslint, prettier, knip).
+
+Do not use Context7 for: refactoring, writing scripts from scratch, debugging business logic, code review, or general programming concepts.

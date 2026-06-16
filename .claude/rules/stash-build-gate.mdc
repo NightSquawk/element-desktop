@@ -1,0 +1,62 @@
+---
+description: "Pre-stash build gate: code that fails the build/typecheck may not be stashed without explicit user authorization"
+alwaysApply: true
+---
+
+# Pre-Stash Build Gate
+
+## Rule
+
+**Do not run `git stash` (or any equivalent that hides WIP from the working tree) while the build is failing, unless the user explicitly authorizes it for this stash.**
+
+For this repo "the build" means, at minimum, a clean typecheck and lint:
+
+```bash
+pnpm run lint:types   # tsc --noEmit across src / playwright / scripts / hak
+pnpm run lint         # types + eslint (--max-warnings 0) + prettier
+```
+
+(A full `pnpm run build` additionally needs a fetched `webapp`; the typecheck/lint gate above is the practical floor for WIP.)
+
+This applies to every form of stash:
+- `git stash`, `git stash push`, `git stash save`
+- `git stash -u` / `--include-untracked`
+- `git stash --keep-index`
+- Any wrapper command, hook, or script that calls one of the above
+
+## Why
+
+A failing build that gets stashed becomes invisible debt:
+- The working tree returns to a clean state, hiding the broken code
+- Future agents (or you, days later) lose the signal that something is wrong
+- When the stash is popped, the failure resurfaces — often after more changes have landed on top, making the cause harder to attribute
+
+The build is the floor. If you can't get back to a passing build, the right move is to **fix or revert**, not hide.
+
+## How to apply
+
+Before stashing, verify the gate passes (`pnpm run lint`).
+
+If it passes → stash freely.
+
+If it fails:
+1. **Do not stash.** Fix the failure or revert the offending change.
+2. If you genuinely need to stash a broken state (mid-refactor, end-of-day WIP), ask the user explicitly:
+   > "`pnpm run lint` is failing with: <summary>. May I stash anyway?"
+3. Wait for explicit authorization. "Sure", "yes", "go ahead" counts. Silence does not.
+4. When authorized, label the stash so the breakage is discoverable:
+   ```bash
+   git stash push -m "BROKEN-BUILD: <one-line reason> — authorized <date>"
+   ```
+
+## Exceptions
+
+- The user themselves running `git stash` interactively — this rule binds agents, not the user's keyboard.
+- Stashing files demonstrably independent of the build graph (docs-only `.md`, README edits). Even here, prefer commit-then-revert over stash.
+
+## Recovery from a violation
+
+If you discover an unauthorized broken-build stash already exists:
+1. Surface it to the user immediately — name the stash, name the breakage
+2. Do not silently pop it onto a working tree
+3. Offer to drop it (lost work) or apply it on a dedicated branch for isolated resolution

@@ -1,0 +1,44 @@
+---
+description: "Git branching, fork/upstream tracking, and commit conventions for the Element Desktop fork"
+alwaysApply: true
+---
+
+# Git Workflow
+
+This repo is a **fork of `element-hq/element-desktop`** (NightSquawk). It has two remotes:
+
+- `origin` — the NightSquawk fork (where our work is pushed)
+- `upstream` — `element-hq/element-desktop` (the canonical source we track and merge from)
+
+## Branches
+
+```
+master    — release line; mirrors upstream releases (tagged vX.Y.Z, vX.Y.Z-rc.N)
+develop   — integration / working branch. Day-to-day work lands here.
+release-vX.Y.Z  — upstream's per-release branches (read-only for us)
+```
+
+- **Daily work** happens on `develop` (or short-lived feature branches off `develop`).
+- `master` receives merges from `develop` at release time (`Merge branch 'master' into develop` and back are part of the normal rhythm — see history).
+- Version bumps are done with the repo's own tooling: `scripts/set-version.ts` / `get-version.ts` sync the local package version to the fetched Element Web release. Don't hand-edit `version` in `package.json` when a script exists.
+
+## Fork discipline
+
+- Keep fork-specific changes **minimal and isolated** so upstream merges stay clean. Prefer additive files (e.g. `docs/nightsquawk-dev-profile.md`) over edits to upstream-owned files where practical.
+- Before starting non-trivial work, consider syncing: `git fetch upstream` then merge `upstream/develop` into `develop`.
+- Never force-push `master`. Avoid force-pushing `develop` unless coordinating a deliberate rebase.
+
+## Commit messages
+
+This repo does **not** use conventional-commit (`feat(scope):`) format — its history is short, descriptive, imperative subject lines (e.g. "Update README with merge information", "Add zizmor CI"). Match the surrounding style:
+
+- Imperative mood, capitalized, no trailing period: "Add …", "Fix …", "Update …", "Bump …".
+- One logical change per commit; don't bundle unrelated changes.
+- Reference the PR/issue number when relevant (`(#1234)`), as upstream does.
+
+## Commit rules
+
+- Test/lint before committing — never commit code that fails `pnpm run lint` or doesn't build.
+- Stage specific files by path, not `git add -A` (avoid sweeping in `webapp/`, `lib/`, `dist/`, profile dirs, or `.env`).
+- Never commit the fetched `webapp` bundle, `webapp.asar`, `lib/`, `dist/`, `packages/`, `deploys/`, or the local `.element-dev-profile/` (git-excluded).
+- Never amend published commits; never force-push shared branches.

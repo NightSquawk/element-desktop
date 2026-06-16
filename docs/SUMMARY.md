@@ -17,3 +17,12 @@
 # Setup
 
 - [Config](config.md)
+- [NightSquawk dev profile](nightsquawk-dev-profile.md)
+
+# Planning
+
+- [TODO / Roadmap index](todo/INDEX.md)
+- [How to add a TODO doc](todo/HOW-TO-ADD.md)
+- [NightSquawk desktop roadmap](todo/nightsquawk-desktop-roadmap.md)
+- [Feature research](feature-research/README.md)
+- [Feature research methodology](feature-research/METHODOLOGY.md)
