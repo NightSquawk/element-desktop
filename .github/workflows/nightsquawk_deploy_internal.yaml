@@ -1,0 +1,80 @@
+# NightSquawk internal auto-deploy: build an unsigned exe and publish it to OUR OWN
+# repo (a GitHub prerelease on this fork). NEVER touches Element infrastructure.
+#
+# Branch policy: the user requires "never to the main branch". In this repo the main
+# branch is `develop` (the default/PR branch); `master` is the release branch. Both are
+# protected from internal auto-deploy. Internal builds come ONLY from transient
+# `feature/**` and `release/**` branches, so develop and master stay clean.
+name: NightSquawk Deploy (internal, unsigned)
+on:
+    push:
+        branches:
+            - "feature/**"
+            - "release/**"
+    workflow_dispatch:
+        inputs:
+            arch:
+                type: choice
+                options: [x64]
+                default: x64
+                description: "Windows architecture (Squirrel.Windows supports x64 only)"
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+permissions: {}
+jobs:
+    guard:
+        name: Guard against main branches
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Refuse to deploy from develop or master
+              if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'
+              run: |
+                  echo "Internal deploy must never run against the main branch (develop) or master." >&2
+                  exit 1
+
+    build:
+        name: Build
+        needs: guard
+        uses: ./.github/workflows/nightsquawk_build.yaml
+        permissions:
+            contents: read
+        with:
+            arch: ${{ inputs.arch || 'x64' }}
+
+    deploy:
+        name: Publish to internal repo
+        needs: build
+        runs-on: ubuntu-24.04
+        # Defence in depth: never publish from the main branch (develop) or master.
+        if: github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/master'
+        permissions:
+            contents: write # create a prerelease on this fork
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  persist-credentials: false
+
+            - name: Download unsigned artifacts
+              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+              with:
+                  pattern: nightsquawk-win-*-unsigned
+                  path: artifacts
+                  merge-multiple: true
+
+            # Default internal "repo" target: a prerelease on this fork.
+            # To target an internal S3/MinIO bucket or a UNC/Syncthing share instead,
+            # replace this step (see docs/todo/listen-together-module.md, Open Questions).
+            - name: Publish prerelease
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  TAG: internal/${{ github.ref_name }}-${{ github.sha }}
+              run: |
+                  set -ex
+                  SHORT_SHA="${GITHUB_SHA::7}"
+                  # Publish the installer plus the squirrel auto-update assets
+                  # (.nupkg + RELEASES) so in-app updates can resolve against the release.
+                  gh release create "$TAG" \
+                      --prerelease \
+                      --target "$GITHUB_SHA" \
+                      --title "NightSquawk internal ${GITHUB_REF_NAME} ${SHORT_SHA}" \
+                      --notes "Unsigned internal build from ${GITHUB_REF_NAME} (${SHORT_SHA}). Not for external distribution." \
+                      artifacts/*.exe artifacts/*.nupkg artifacts/RELEASES

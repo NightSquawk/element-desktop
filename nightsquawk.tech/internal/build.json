@@ -1,0 +1,9 @@
+{
+    "appId": "tech.nightsquawk.desktop.internal",
+    "name": "element-desktop-nightsquawk",
+    "productName": "NightSquawk Internal",
+    "description": "NightSquawk Desktop (internal unsigned build)",
+    "protocols": ["tech.nightsquawk.desktop", "element"],
+    "linux.executableName": "element-desktop-nightsquawk",
+    "linux.deb.name": "nightsquawk-desktop-internal"
+}

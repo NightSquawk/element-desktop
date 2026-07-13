@@ -1,0 +1,27 @@
+{
+    "name": "@nightsquawk/element-web-listen-together-module",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "description": "Element Web module: synchronized shared audio listening ('Listen Together') for NightSquawk Desktop.",
+    "license": "AGPL-3.0-only OR LicenseRef-Element-Commercial",
+    "sideEffects": ["**/*.css"],
+    "scripts": {
+        "build": "vite build",
+        "lint:types": "tsc --noEmit",
+        "test": "echo 'no tests yet' && exit 0"
+    },
+    "devDependencies": {
+        "@element-hq/element-web-module-api": "^1.14.0",
+        "@types/node": "^22.10.7",
+        "@types/react": "^19",
+        "@types/react-dom": "^19",
+        "@vitejs/plugin-react": "^4.3.4",
+        "react": "^19",
+        "react-dom": "^19",
+        "rollup-plugin-external-globals": "^0.13.0",
+        "typescript": "^5.9.3",
+        "vite": "^6.0.0",
+        "vite-plugin-node-polyfills": "^0.23.0"
+    }
+}

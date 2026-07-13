@@ -1,0 +1,19 @@
+{
+    "default_server_name": "matrix.nasquack.studio",
+    "default_server_config": {
+        "m.homeserver": {
+            "base_url": "https://matrix.nasquack.studio"
+        }
+    },
+    "brand": "Element - NightSquawk Tech",
+    "show_labs_settings": true,
+    "room_directory": {
+        "servers": ["matrix.nasquack.studio"]
+    },
+    "element_call": {
+        "url": "https://call.element.io"
+    },
+
+    "_comment_modules": "VERIFY IN SPIKE: exact runtime module-loader key for the fetched element-web version. Current assumption: a `modules` array of webapp-relative URLs that element-web dynamic-imports at boot. If the bundled element-web only supports BUILD-TIME module bundling, this key does nothing and the combine step in scripts/nightsquawk/inject-module.ts must change to building element-web with the module instead. See docs/todo/listen-together-module.md.",
+    "modules": ["modules/listen-together.js"]
+}

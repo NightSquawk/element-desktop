@@ -1,0 +1,55 @@
+# Lint, typecheck and build the Listen Together Element Web module bundle.
+# Fast feedback on PRs that touch the module, independent of the full app build.
+name: NightSquawk Module CI
+on:
+    pull_request:
+        paths:
+            - "nightsquawk-modules/listen-together/**"
+            - ".github/workflows/nightsquawk_module_ci.yaml"
+    push:
+        branches:
+            - develop
+            - "feature/**"
+        paths:
+            - "nightsquawk-modules/listen-together/**"
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+permissions: {}
+jobs:
+    build:
+        name: Build module
+        runs-on: ubuntu-24.04
+        permissions:
+            contents: read
+        defaults:
+            run:
+                working-directory: nightsquawk-modules/listen-together
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4
+            - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+              with:
+                  node-version-file: .node-version
+
+            # --ignore-workspace: the root pnpm-workspace.yaml would otherwise
+            # redirect this install to the root project, leaving the module's own
+            # node_modules empty and breaking the vite build below.
+            - name: Install
+              run: pnpm install --no-frozen-lockfile --ignore-workspace
+
+            - name: Typecheck
+              run: pnpm run lint:types
+
+            - name: Build
+              run: pnpm run build
+
+            - name: Assert bundle present
+              run: test -f dist/listen-together.js
+
+            - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+              with:
+                  name: listen-together-module
+                  path: nightsquawk-modules/listen-together/dist/listen-together.js
+                  retention-days: 7

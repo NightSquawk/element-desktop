@@ -1,0 +1,122 @@
+# NightSquawk internal build: combine our Electron shell with the prebuilt Element Web
+# bundle PLUS the Listen Together module, and package an UNSIGNED Windows app.
+#
+# Reusable (workflow_call) + manual (workflow_dispatch). Never signs, never deploys to
+# Element infrastructure. Deployment is handled by nightsquawk_deploy_internal.yaml.
+name: NightSquawk Build (unsigned)
+on:
+    # TEMPORARY (remove before merge): end-to-end CI smoke test on the throwaway
+    # test branch. `test/**` matches neither the deploy workflow's `feature/**`/
+    # `release/**` triggers nor module CI, so pushing here runs ONLY this build and
+    # never publishes a release.
+    push:
+        branches:
+            - "test/nightsquawk-ci"
+    workflow_call:
+        inputs:
+            ref:
+                type: string
+                required: false
+                description: "Git ref to checkout, defaults to the triggering ref"
+            arch:
+                type: string
+                required: false
+                default: "x64"
+                description: "Windows architecture. Only 'x64' is supported: the Squirrel.Windows target has no arm64 support."
+            element-web-version:
+                type: string
+                required: false
+                default: ""
+                description: "Element Web release to fetch (e.g. v1.12.13 or 'develop'); defaults to package.json version"
+    workflow_dispatch:
+        inputs:
+            arch:
+                type: choice
+                options: [x64]
+                default: x64
+                description: "Windows architecture (Squirrel.Windows supports x64 only)"
+            element-web-version:
+                type: string
+                required: false
+                default: ""
+                description: "Element Web release to fetch; defaults to package.json version"
+permissions: {}
+jobs:
+    build:
+        name: Build Windows ${{ inputs.arch }} (unsigned)
+        runs-on: windows-2025
+        permissions:
+            contents: read
+        env:
+            VARIANT_DIR: nightsquawk.tech/internal
+            # Ensure electron-builder never attempts code signing for internal builds.
+            CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  ref: ${{ inputs.ref }}
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4
+            - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+              with:
+                  node-version-file: .node-version
+                  cache: "pnpm"
+
+            - name: Install shell deps
+              run: pnpm install --frozen-lockfile
+
+            - name: Fetch Element Web (prebuilt) with NightSquawk config
+              shell: bash
+              # ${VERSION:+"$VERSION"} passes the version quoted only when non-empty;
+              # when empty the arg is omitted so fetch defaults to package.json version.
+              run: pnpm run fetch --noverify -d "$VARIANT_DIR" ${VERSION:+"$VERSION"}
+              env:
+                  VERSION: ${{ inputs.element-web-version }}
+
+            - name: Build Listen Together module
+              shell: bash
+              run: |
+                  pnpm --dir nightsquawk-modules/listen-together install --no-frozen-lockfile --ignore-workspace
+                  pnpm --dir nightsquawk-modules/listen-together run build
+
+            # Combine: inject the module bundle into the prebuilt webapp.asar and repack.
+            - name: Inject module into webapp
+              shell: bash
+              run: |
+                  pnpm exec tsx scripts/nightsquawk/inject-module.ts \
+                      --asar webapp.asar \
+                      --module nightsquawk-modules/listen-together/dist/listen-together.js
+
+            - name: Select build variant
+              shell: bash
+              run: cp "$VARIANT_DIR/build.json" variant.json
+
+            # Internal builds skip native modules (no encrypted-room search). An empty
+            # hakModules dir keeps electron-builder's file copy happy.
+            - name: Stub native modules dir
+              shell: bash
+              run: mkdir -p .hak/hakModules
+
+            - name: Build app (unsigned)
+              shell: bash
+              # x64 only (electron-builder defaults to the host arch on windows-2025);
+              # the Squirrel.Windows target does not support arm64.
+              run: pnpm build --publish never -w squirrel
+              env:
+                  VARIANT_PATH: variant.json
+
+            - name: Assert unsigned installer is present
+              shell: pwsh
+              run: |
+                  if (-not (Test-Path './dist/squirrel-windows*/*.exe')) { throw 'No installer produced' }
+
+            - name: Upload unsigned build
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+              with:
+                  name: nightsquawk-win-${{ inputs.arch }}-unsigned
+                  path: |
+                      dist/squirrel-windows*/*.exe
+                      dist/squirrel-windows*/*.nupkg
+                      dist/squirrel-windows*/RELEASES
+                  retention-days: 7
