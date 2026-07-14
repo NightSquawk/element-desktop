@@ -14,6 +14,6 @@
         "url": "https://call.element.io"
     },
 
-    "_comment_modules": "VERIFY IN SPIKE: exact runtime module-loader key for the fetched element-web version. Current assumption: a `modules` array of webapp-relative URLs that element-web dynamic-imports at boot. If the bundled element-web only supports BUILD-TIME module bundling, this key does nothing and the combine step in scripts/nightsquawk/inject-module.ts must change to building element-web with the module instead. See docs/todo/listen-together-module.md.",
-    "modules": ["modules/listen-together.js"]
+    "_comment_modules": "RESOLVED (2026-07-14): element-web's loader does `import(src)` with the raw config value, executed from a bundle chunk under webapp/bundles/<hash>/. A bare or './'-relative specifier therefore fails ('Failed to resolve module specifier'). On desktop the webapp is served at vector://vector/webapp/ (electron-main registerFileProtocol), so the module MUST be referenced by its fully-qualified vector:// URL — the same scheme element-web uses to import its own chunks.",
+    "modules": ["vector://vector/webapp/modules/listen-together.js"]
 }

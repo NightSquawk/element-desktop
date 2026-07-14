@@ -22,20 +22,23 @@ Please see LICENSE files in the repository root for full details.
  *      self-heal in case a different config was packed in).
  *   4. Repack `webapp.asar`.
  *
- * VERIFY IN SPIKE (see docs/todo/listen-together-module.md):
- *   - `--config-key` (default "modules") is the *assumed* runtime module-loader key.
- *     Confirm against the fetched element-web version. If that element-web only
- *     supports BUILD-TIME module bundling, this injection approach does not work
- *     and the combine step must instead build element-web with the module.
- *   - Whether the loader resolves a webapp-relative URL ("modules/listen-together.js")
- *     or requires an absolute URL / different path.
+ * VERIFIED (2026-07-14, against the packaged desktop build):
+ *   - The runtime loader key IS "modules": element-web does `SdkConfig.get("modules")`
+ *     then `await import(/* webpackIgnore *\/ src)` for each entry (runtime dynamic import,
+ *     NOT build-time bundling — so injecting into the prebuilt webapp works).
+ *   - The loader passes `src` to `import()` verbatim from a bundle chunk under
+ *     webapp/bundles/<hash>/, so a bare ("modules/x.js") or "./"-relative specifier throws
+ *     "Failed to resolve module specifier". The entry MUST be the fully-qualified URL the
+ *     desktop file-protocol serves it from: vector://vector/webapp/modules/listen-together.js
+ *     (overridable via --base-url).
  *
  * Usage:
  *   tsx scripts/nightsquawk/inject-module.ts \
  *     --asar webapp.asar \
  *     --module nightsquawk-modules/listen-together/dist/listen-together.js \
  *     [--dest modules/listen-together.js] \
- *     [--config-key modules]
+ *     [--config-key modules] \
+ *     [--base-url vector://vector/webapp/]
  */
 
 import * as path from "node:path";
@@ -48,6 +51,7 @@ interface Args {
     module: string;
     dest: string;
     configKey: string;
+    baseUrl: string;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -56,6 +60,11 @@ function parseArgs(argv: string[]): Args {
         module: "",
         dest: "modules/listen-together.js",
         configKey: "modules",
+        // On desktop the webapp is served at vector://vector/webapp/ (electron-main
+        // registerFileProtocol). element-web's loader does `import(src)` with the raw
+        // config value from a bundle chunk under webapp/bundles/<hash>/, so the module
+        // must be referenced by a fully-qualified URL, not a bare/relative path.
+        baseUrl: "vector://vector/webapp/",
     };
     for (let i = 2; i < argv.length; i++) {
         switch (argv[i]) {
@@ -71,6 +80,9 @@ function parseArgs(argv: string[]): Args {
             case "--config-key":
                 args.configKey = argv[++i];
                 break;
+            case "--base-url":
+                args.baseUrl = argv[++i];
+                break;
             default:
                 throw new Error(`Unknown argument: ${argv[i]}`);
         }
@@ -79,8 +91,17 @@ function parseArgs(argv: string[]): Args {
     return args;
 }
 
-/** Add the module path to the config's loader array if not already present. */
-async function ensureModuleInConfig(configPath: string, key: string, modulePath: string): Promise<void> {
+/**
+ * Set the config loader entry for our module to exactly `moduleUrl`, removing any stale
+ * entry (e.g. a bare/relative path from an older build) that references the same file —
+ * a leftover unresolvable specifier would break loading of ALL modules.
+ */
+async function ensureModuleInConfig(
+    configPath: string,
+    key: string,
+    moduleUrl: string,
+    managedBasename: string,
+): Promise<void> {
     let config: Record<string, unknown> = {};
     try {
         config = JSON.parse(await fs.readFile(configPath, "utf8"));
@@ -88,12 +109,15 @@ async function ensureModuleInConfig(configPath: string, key: string, modulePath:
         console.warn(`No ${configPath} found in webapp; creating a minimal one.`);
     }
     const existing = Array.isArray(config[key]) ? (config[key] as string[]) : [];
-    if (!existing.includes(modulePath)) {
-        config[key] = [...existing, modulePath];
+    // Drop any prior entry pointing at our managed file (any URL form), then add the canonical one.
+    const others = existing.filter((e) => !e.endsWith(managedBasename));
+    const next = [...others, moduleUrl];
+    if (JSON.stringify(next) !== JSON.stringify(existing)) {
+        config[key] = next;
         await fs.writeFile(configPath, JSON.stringify(config, null, 4) + "\n");
-        console.log(`Registered module under config["${key}"]: ${modulePath}`);
+        console.log(`Registered module under config["${key}"]: ${moduleUrl}`);
     } else {
-        console.log(`Module already registered under config["${key}"].`);
+        console.log(`Module already registered under config["${key}"]: ${moduleUrl}`);
     }
 }
 
@@ -110,9 +134,10 @@ async function main(): Promise<void> {
         await fs.copyFile(args.module, destAbs);
         console.log(`Injected module: ${args.module} -> ${path.join(args.dest)}`);
 
-        // The webapp-relative URL the loader should import (config references it).
-        const moduleUrl = args.dest.split(path.sep).join("/");
-        await ensureModuleInConfig(path.join(tmp, "config.json"), args.configKey, moduleUrl);
+        // The fully-qualified URL the loader should import (see baseUrl note in parseArgs).
+        const relPath = args.dest.split(path.sep).join("/");
+        const moduleUrl = args.baseUrl.replace(/\/$/, "") + "/" + relPath.replace(/^\//, "");
+        await ensureModuleInConfig(path.join(tmp, "config.json"), args.configKey, moduleUrl, path.basename(relPath));
 
         console.log(`Repacking ${args.asar}`);
         await asar.createPackage(tmp, args.asar);
