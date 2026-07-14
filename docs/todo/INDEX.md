@@ -18,6 +18,7 @@ conversation history from chat logs.
 | Area | File | Status | Last touched |
 |---|---|---|---|
 | NightSquawk branded client | [nightsquawk-desktop-roadmap.md](./nightsquawk-desktop-roadmap.md) | PHASED (local dev profile working; durable branding/package path TODO) | 2026-06-16 |
+| Listen Together (synced shared audio) | [listen-together-module.md](./listen-together-module.md) | TODO (designed; gated on Phase 1 capability spike) | 2026-06-24 |
 
 ---
 
@@ -37,6 +38,19 @@ conversation history from chat logs.
   - `src/electron-main.ts`
   - `docs/native-node-modules.md`
   - `docs/windows-requirements.md`
+- **Related commits:** none yet.
+
+### Listen Together (Synced Shared Audio)
+
+- **File:** `docs/todo/listen-together-module.md`
+- **Feature:** Two people share an MP3 and listen synchronized in real time, built as an Element Web module (no element-web fork) injected into our shell, with unsigned internal CI builds.
+- **Status:** TODO - designed; gated on a Phase 1 capability spike (confirm module loader key + in-module matrix client access for send-event/media-decrypt).
+- **Key files when picking this up:**
+  - `docs/feature-research/shared-audio-listening/shared-audio-listening.md`
+  - `nightsquawk-modules/listen-together/`
+  - `scripts/nightsquawk/inject-module.ts`
+  - `nightsquawk.tech/internal/build.json`, `nightsquawk.tech/internal/config.json`
+  - `.github/workflows/nightsquawk_module_ci.yaml`, `nightsquawk_build.yaml`, `nightsquawk_deploy_internal.yaml`
 - **Related commits:** none yet.
 
 ---
