@@ -27,7 +27,21 @@ export default class ProtocolHandler {
         // get all args except `hidden` as it'd mean the app would not get focused
         // XXX: passing args to protocol handlers only works on Windows, so unpackaged deep-linking
         // --profile/--profile-dir are passed via the SEARCH_PARAM var in the callback url
-        const args = process.argv.slice(1).filter((arg) => arg !== "--hidden" && arg !== "-hidden");
+        //
+        // Never bake a deep-link / SSO callback URL into the persistent protocol registration:
+        // if the app was launched *via* a deep link, process.argv contains e.g.
+        // `element://vector/webapp/?...&loginToken=...`. Registering that as a fixed arg pins a
+        // stale, single-use loginToken into the handler command, so every subsequent SSO login
+        // replays the expired token and bounces back to the login screen.
+        const args = process.argv
+            .slice(1)
+            .filter(
+                (arg) =>
+                    arg !== "--hidden" &&
+                    arg !== "-hidden" &&
+                    !arg.startsWith(`${this.protocol}:`) &&
+                    !arg.startsWith(`${LEGACY_PROTOCOL}:`),
+            );
         if (app.isPackaged) {
             app.setAsDefaultProtocolClient(this.protocol, process.execPath, args);
             app.setAsDefaultProtocolClient(LEGACY_PROTOCOL, process.execPath, args);

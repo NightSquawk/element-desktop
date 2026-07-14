@@ -134,7 +134,13 @@ function RoomHeaderShareButton(props: { onPick: (file: File) => void }): React.R
 }
 
 class ListenTogetherModule implements Module {
-    public static readonly moduleApiVersion = "^1.14.0";
+    // The engine's compat check is satisfies(engineVersion, thisRange). We develop against the
+    // @element-hq/element-web-module-api@1.14.0 *types*, but the fetched Element Web (v1.12.13)
+    // ships module engine 1.12.0 at runtime — and all APIs we call (registerMessageRenderer,
+    // createRoot, rootNode, extras.addRoomHeaderButtonCallback) are present in it. So declare
+    // broad 1.x compatibility rather than the npm package's version, which would wrongly reject
+    // the older-but-capable engine. Newer APIs are feature-detected before use.
+    public static readonly moduleApiVersion = "^1.0.0";
 
     public constructor(private readonly api: Api) {}
 
@@ -146,13 +152,11 @@ class ListenTogetherModule implements Module {
             log("capability probe threw:", e);
         }
 
-        const client: ListenTogetherClient | null = getListenTogetherClient();
-        if (!client) {
-            log("no usable matrix client facade (peg unavailable); Listen Together stays dormant this session.");
-            return;
-        }
-
         const clock = createHomeserverClock();
+
+        // The peg has no client until the user logs in, so we must NOT bail at boot: `load()`
+        // runs before login. Acquire the client lazily (see ensureClient below) and keep going.
+        let client: ListenTogetherClient | null = null;
 
         // --- mini-player (persistent transport UI) state -------------------------------------
         let controller: SyncController | null = null;
@@ -200,6 +204,27 @@ class ListenTogetherModule implements Module {
         };
 
         /**
+         * Obtain the peg-backed client lazily. It is null until the user logs in, so this is
+         * called both from a post-login poll and from user-action handlers. The first success
+         * attaches the receive path (timeline listener) and logs the real spike verdict.
+         */
+        const ensureClient = (): ListenTogetherClient | null => {
+            if (client) return client;
+            const c = getListenTogetherClient();
+            if (!c) return null;
+            client = c;
+            log(`matrix client acquired (${c.getUserId() ?? "unknown"}); wiring receive path.`);
+            c.onTimelineEvent((ev: MatrixEventLike) => {
+                clock.addSample(Date.now(), ev.getTs());
+                if (ev.getType() !== EVENT_CONTROL) return;
+                if (ev.getSender() === c.getUserId()) return; // ignore our own echo
+                const content = parseControl(ev.getContent());
+                if (content) controller?.applyControl(content);
+            });
+            return client;
+        };
+
+        /**
          * CONTRACT-DEVIATION: CONTRACT.md's `startSession(share, trackEventId)` omits `roomId`,
          * but `SyncControllerOptions` (sync/controller.ts) requires one and there's no reliable
          * way to recover it otherwise (the module-API `Api` surface has no "current room" getter).
@@ -208,10 +233,15 @@ class ListenTogetherModule implements Module {
          */
         const startSession = async (roomId: string, share: ShareEventContent, trackEventId: string): Promise<void> => {
             lastRoomId = roomId;
+            const c = ensureClient();
+            if (!c) {
+                log("cannot start listen session: not signed in yet.");
+                return;
+            }
             teardownSession();
             renderPlayer();
             try {
-                const bytes = await client.downloadTrack(share);
+                const bytes = await c.downloadTrack(share);
                 const blob = new Blob([bytes], { type: share.mimetype || "audio/mpeg" });
                 objectUrl = URL.createObjectURL(blob);
 
@@ -220,7 +250,7 @@ class ListenTogetherModule implements Module {
                 audio.src = objectUrl;
 
                 controller = createSyncController({
-                    client,
+                    client: c,
                     clock,
                     audio,
                     roomId,
@@ -258,9 +288,14 @@ class ListenTogetherModule implements Module {
                 log("onPickFile: no room in context to share into (use the room header button).");
                 return;
             }
+            const c = ensureClient();
+            if (!c) {
+                log("cannot share: not signed in yet.");
+                return;
+            }
             try {
                 const [uploaded, durationMs] = await Promise.all([
-                    client.uploadAudio(roomId, file),
+                    c.uploadAudio(roomId, file),
                     probeAudioDurationMs(file),
                 ]);
                 const share: ShareEventContent = {
@@ -271,7 +306,7 @@ class ListenTogetherModule implements Module {
                     size: file.size,
                     file: uploaded.file,
                 };
-                const trackEventId = await client.sendEvent(roomId, EVENT_SHARE, serializeShare(share));
+                const trackEventId = await c.sendEvent(roomId, EVENT_SHARE, serializeShare(share));
                 await startSession(roomId, share, trackEventId);
             } catch (e) {
                 log("failed to share picked file:", e);
@@ -286,18 +321,7 @@ class ListenTogetherModule implements Module {
             }),
         );
 
-        // Receive path: keep the homeserver clock fed, and forward peer control commands.
-        client.onTimelineEvent((ev: MatrixEventLike) => {
-            clock.addSample(Date.now(), ev.getTs());
-
-            if (ev.getType() !== EVENT_CONTROL) return;
-            if (ev.getSender() === client.getUserId()) return; // ignore our own echo
-
-            const content = parseControl(ev.getContent());
-            if (!content) return;
-
-            controller?.applyControl(content);
-        });
+        // (Receive path is attached inside ensureClient once a client is available.)
 
         // Entry point: a room-header button, if this module-API version exposes the hook.
         if (typeof this.api.extras?.addRoomHeaderButtonCallback === "function") {
@@ -315,7 +339,17 @@ class ListenTogetherModule implements Module {
         }
 
         renderPlayer(); // mount the (initially idle) persistent mini-player shell
-        log("wired: message renderer, timeline listener, mini-player.");
+
+        // The peg client is absent until login. Acquire it now if already signed in; otherwise
+        // poll so the receive path attaches once the user signs in (needed even for a peer who
+        // never initiates a share). Stops on first success or after ~3 minutes.
+        if (!ensureClient()) {
+            let attempts = 0;
+            const poll = setInterval(() => {
+                if (ensureClient() || ++attempts >= 60) clearInterval(poll);
+            }, 3000);
+        }
+        log("wired: message renderer + mini-player; client acquired lazily post-login.");
     }
 }
 
