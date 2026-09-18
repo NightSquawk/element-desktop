@@ -39,7 +39,7 @@ importers:
         specifier: ^1.2.6
         version: 1.2.8
       png-to-ico:
-        specifier: ^3.0.1
+        specifier: ^3.0.2
         version: 3.0.2
       uuid:
         specifier: ^13.0.2
@@ -58,11 +58,11 @@ importers:
         specifier: ^7.29.7
         version: 7.29.7(@babel/core@7.29.7)
       '@babel/preset-typescript':
-        specifier: ^7.18.6
+        specifier: ^7.29.7
         version: 7.29.7(@babel/core@7.29.7)
       '@electron/asar':
-        specifier: 4.1.0
-        version: 4.1.0
+        specifier: 4.3.0
+        version: 4.3.0
       '@playwright/test':
         specifier: 1.58.2
         version: 1.58.2
@@ -85,10 +85,10 @@ importers:
         specifier: ^11.1.1
         version: 11.1.8
       '@typescript-eslint/eslint-plugin':
-        specifier: ^8.0.0
+        specifier: ^8.70.0
         version: 8.70.0(@typescript-eslint/parser@8.70.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)
       '@typescript-eslint/parser':
-        specifier: ^8.0.0
+        specifier: ^8.70.0
         version: 8.70.0(eslint@8.57.1)(typescript@5.9.3)
       app-builder-lib:
         specifier: 26.16.1
@@ -127,10 +127,10 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0(f37ddca7a513f992e748c8ba732cfb00)
       eslint-plugin-n:
-        specifier: ^17.12.0
+        specifier: ^17.24.0
         version: 17.24.0(eslint@8.57.1)(typescript@5.9.3)
       eslint-plugin-unicorn:
-        specifier: ^56.0.0
+        specifier: ^56.0.1
         version: 56.0.1(eslint@8.57.1)
       glob:
         specifier: ^13.0.0
@@ -139,10 +139,10 @@ importers:
         specifier: ^9.1.6
         version: 9.1.7
       knip:
-        specifier: ^5.0.0
+        specifier: ^5.88.1
         version: 5.88.1(@types/node@18.19.130)(typescript@5.9.3)
       lint-staged:
-        specifier: ^16.0.0
+        specifier: ^16.4.0
         version: 16.4.0
       matrix-web-i18n:
         specifier: 3.6.0
@@ -154,7 +154,7 @@ importers:
         specifier: ^21.5.1
         version: 21.5.1
       prettier:
-        specifier: ^3.0.0
+        specifier: ^3.9.8
         version: 3.9.8
       rimraf:
         specifier: ^6.0.0
@@ -163,7 +163,7 @@ importers:
         specifier: ^7.5.21
         version: 7.5.22
       tsx:
-        specifier: ^4.19.2
+        specifier: ^4.23.13
         version: 4.23.13
       typescript:
         specifier: 5.9.3
@@ -747,8 +747,8 @@ packages:
     engines: {node: '>=10.12.0'}
     hasBin: true
 
-  '@electron/asar@4.1.0':
-    resolution: {integrity: sha512-DflfXtTFuTYHcyupbhnCWi+hBFdhsWl878NuA1UmW7YVFlqPlY0SHdREVnigEO3zjS2vh4hp1A4dEl3I6mgd9w==}
+  '@electron/asar@4.3.0':
+    resolution: {integrity: sha512-k/FFC/NQoTykGBi/Ga4L4KorsAKDdkK0LfNVG90eUG6vPVpJaL3iR9V1ZLbzBAF3QpojK5DcaGOdQOheKZv4JQ==}
     engines: {node: '>=22.12.0'}
     hasBin: true
 
@@ -1839,10 +1839,6 @@ packages:
   combined-stream@1.0.8:
     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
     engines: {node: '>= 0.8'}
-
-  commander@13.1.0:
-    resolution: {integrity: sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw==}
-    engines: {node: '>=18'}
 
   commander@14.0.3:
     resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
@@ -4918,12 +4914,10 @@ snapshots:
       glob: 7.2.3
       minimatch: 3.1.5
 
-  '@electron/asar@4.1.0':
+  '@electron/asar@4.3.0':
     dependencies:
-      commander: 13.1.0
       glob: 13.0.6
       minimatch: 10.2.6
-      plist: 3.1.0
 
   '@electron/fuses@1.8.0':
     dependencies:
@@ -6151,8 +6145,6 @@ snapshots:
   combined-stream@1.0.8:
     dependencies:
       delayed-stream: 1.0.0
-
-  commander@13.1.0: {}
 
   commander@14.0.3: {}
 
