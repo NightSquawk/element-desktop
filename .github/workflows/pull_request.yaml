@@ -7,6 +7,8 @@ on:
 permissions: {}
 jobs:
     action:
+        # The upstream workflow queries Element teams using its private bot token.
+        if: github.repository_owner == 'element-hq'
         uses: matrix-org/matrix-js-sdk/.github/workflows/pull_request.yaml@19ab080d9eb6127287347c25b3298ce72e741c8f # zizmor: ignore[unpinned-uses]
         permissions:
             pull-requests: write
