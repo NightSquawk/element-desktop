@@ -7,7 +7,7 @@ concurrency: ${{ github.workflow }}
 permissions: {}
 jobs:
     draft:
-        uses: matrix-org/matrix-js-sdk/.github/workflows/release-drafter-workflow.yml@develop # zizmor: ignore[unpinned-uses]
+        uses: matrix-org/matrix-js-sdk/.github/workflows/release-drafter-workflow.yml@19ab080d9eb6127287347c25b3298ce72e741c8f # zizmor: ignore[unpinned-uses]
         permissions:
             contents: write
         with:

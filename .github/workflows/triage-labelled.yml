@@ -8,5 +8,5 @@ permissions: {} # Uses ELEMENT_BOT_TOKEN
 
 jobs:
     call-triage-labelled:
-        uses: element-hq/element-web/.github/workflows/triage-labelled.yml@develop # zizmor: ignore[unpinned-uses]
+        uses: element-hq/element-web/.github/workflows/triage-labelled.yml@8960a1724503d2bfd1b8aa53e450f8b24163796c # zizmor: ignore[unpinned-uses]
         secrets: inherit # zizmor: ignore[secrets-inherit]
