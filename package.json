@@ -102,7 +102,7 @@
         "glob": "^13.0.0",
         "husky": "^9.1.6",
         "knip": "^5.0.0",
-        "lint-staged": "^16.0.0",
+        "lint-staged": "^17.6.0",
         "matrix-web-i18n": "3.6.0",
         "mkdirp": "^3.0.0",
         "pacote": "^21.0.0",
