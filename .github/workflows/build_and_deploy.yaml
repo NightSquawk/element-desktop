@@ -258,7 +258,7 @@ jobs:
                       ${{ steps.deb.outputs.arm64 }}
 
             - name: Publish amd64 deb to packages.element.io
-              uses: element-hq/packages.element.io@master # zizmor: ignore[unpinned-uses]
+              uses: element-hq/packages.element.io@c62397ee1269f1624f90e0b8a18fa7ec68d20053 # zizmor: ignore[unpinned-uses]
               if: needs.prepare.outputs.deploy == 'true' && needs.linux.result == 'success'
               with:
                   file: ${{ steps.deb.outputs.amd64 }}
@@ -268,7 +268,7 @@ jobs:
                   bucket-access-key: ${{ secrets.CF_R2_TOKEN }}
 
             - name: Publish arm64 deb to packages.element.io
-              uses: element-hq/packages.element.io@master # zizmor: ignore[unpinned-uses]
+              uses: element-hq/packages.element.io@c62397ee1269f1624f90e0b8a18fa7ec68d20053 # zizmor: ignore[unpinned-uses]
               if: needs.prepare.outputs.deploy == 'true' && needs.linux.result == 'success'
               with:
                   file: ${{ steps.deb.outputs.arm64 }}
